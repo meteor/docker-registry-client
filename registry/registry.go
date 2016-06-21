@@ -84,8 +84,8 @@ func WrapTransport(transport http.RoundTripper, url, username, password string) 
 	return errorTransport
 }
 
-// ChooseError returns error from context if found, or a given error otherwise.
-func ChooseError(ctx context.Context, err error) error {
+// chooseError returns error from context if found, or a given error otherwise.
+func chooseError(ctx context.Context, err error) error {
 	select {
 	case <-ctx.Done():
 		if ctx.Err() != nil {
@@ -129,7 +129,7 @@ func (r *Registry) Ping(ctx context.Context) error {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		return ChooseError(ctx, err)
+		return chooseError(ctx, err)
 	}
 	return nil
 }
