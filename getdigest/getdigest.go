@@ -18,7 +18,7 @@ var (
 func main() {
 	flag.Parse()
 
-	if len(flag.Args()) != 1 {
+	if flag.NArg() != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] <repository:tag>\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(1)

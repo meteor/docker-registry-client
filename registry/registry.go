@@ -36,6 +36,9 @@ type Registry struct {
  * Create a new Registry with the given URL and credentials, then Ping()s it
  * before returning it to verify that the registry is available.
  *
+ * Context is only passed to Ping() and not stored, i.e. does not affect
+ * subsequent API calls.
+ *
  * You can, alternately, construct a Registry manually by populating the fields.
  * This passes http.DefaultTransport to WrapTransport when creating the
  * http.Client.

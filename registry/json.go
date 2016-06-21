@@ -2,20 +2,21 @@ package registry
 
 import (
 	"encoding/json"
+	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
 )
 
-func (registry *Registry) getJson(url string, response interface{}) error {
-	resp, err := registry.Client.Get(url)
+func (registry *Registry) getJson(ctx context.Context, url string, response interface{}) error {
+	resp, err := ctxhttp.Get(ctx, registry.Client, url)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		return err
+		return chooseError(ctx, err)
 	}
 
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(response)
-	if err != nil {
+	if err := decoder.Decode(response); err != nil {
 		return err
 	}
 
