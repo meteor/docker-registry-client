@@ -53,7 +53,7 @@ func (registry *Registry) GetManifestDigest(ctx context.Context, repository stri
 	}
 
 	// No verification is done to check if this digest actually match
-	// the content of returned image manifest. This trusts the server
-	// to return the correct value.
+	// the content of returned image manifest. This implicitly trusts
+	// registry to return correct value.
 	return header[0], nil
 }
