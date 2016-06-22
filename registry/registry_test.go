@@ -14,12 +14,9 @@ func buildAnonymousDockerHub(t *testing.T, ctx context.Context) *Registry {
 }
 
 func TestTags(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	r := buildAnonymousDockerHub(t, context.Background())
 
-	r := buildAnonymousDockerHub(t, ctx)
-
-	tags, err := r.Tags(ctx, "library/ubuntu")
+	tags, err := r.Tags(context.Background(), "library/ubuntu")
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,15 +35,12 @@ func TestTags(t *testing.T) {
 }
 
 func TestManifestDigest(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	r := buildAnonymousDockerHub(t, ctx)
+	r := buildAnonymousDockerHub(t, context.Background())
 
 	// if we ask for a manifest with this specific digest, it should
 	// return the exact same digest
 	expected := "sha256:4a731fb46adc5cefe3ae374a8b6020fc1b6ad667a279647766e9a3cd89f6fa92"
-	digest, err := r.GetManifestDigest(ctx, "library/busybox", expected)
+	digest, err := r.GetManifestDigest(context.Background(), "library/busybox", expected)
 	if err != nil {
 		t.Error(err)
 	}
