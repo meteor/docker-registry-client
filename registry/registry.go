@@ -3,17 +3,19 @@ package registry
 import (
 	"crypto/tls"
 	"fmt"
+	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
 	"log"
 	"net/http"
 	"strings"
 )
 
-type LogfCallback func(format string, args... interface{})
+type LogfCallback func(format string, args ...interface{})
 
 /*
  * Discard log messages silently.
  */
-func Quiet(format string, args... interface{}) {
+func Quiet(format string, args ...interface{}) {
 	/* discard logs */
 }
 
@@ -34,28 +36,31 @@ type Registry struct {
  * Create a new Registry with the given URL and credentials, then Ping()s it
  * before returning it to verify that the registry is available.
  *
+ * Context is only passed to Ping() and not stored, i.e. does not affect
+ * subsequent API calls.
+ *
  * You can, alternately, construct a Registry manually by populating the fields.
  * This passes http.DefaultTransport to WrapTransport when creating the
  * http.Client.
  */
-func New(registryUrl, username, password string) (*Registry, error) {
+func New(ctx context.Context, registryUrl, username, password string) (*Registry, error) {
 	transport := http.DefaultTransport
 
-	return newFromTransport(registryUrl, username, password, transport, Log)
+	return newFromTransport(ctx, registryUrl, username, password, transport, Log)
 }
 
 /*
  * Create a new Registry, as with New, using an http.Transport that disables
  * SSL certificate verification.
  */
-func NewInsecure(registryUrl, username, password string) (*Registry, error) {
+func NewInsecure(ctx context.Context, registryUrl, username, password string) (*Registry, error) {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
 	}
 
-	return newFromTransport(registryUrl, username, password, transport, Log)
+	return newFromTransport(ctx, registryUrl, username, password, transport, Log)
 }
 
 /*
@@ -82,7 +87,20 @@ func WrapTransport(transport http.RoundTripper, url, username, password string) 
 	return errorTransport
 }
 
-func newFromTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
+// chooseError returns error from context if found, or a given error otherwise.
+func chooseError(ctx context.Context, err error) error {
+	select {
+	case <-ctx.Done():
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return err
+	default:
+		return err
+	}
+}
+
+func newFromTransport(ctx context.Context, registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
 	url := strings.TrimSuffix(registryUrl, "/")
 	transport = WrapTransport(transport, url, username, password)
 	registry := &Registry{
@@ -93,7 +111,7 @@ func newFromTransport(registryUrl, username, password string, transport http.Rou
 		Logf: logf,
 	}
 
-	if err := registry.Ping(); err != nil {
+	if err := registry.Ping(ctx); err != nil {
 		return nil, err
 	}
 
@@ -106,15 +124,15 @@ func (r *Registry) url(pathTemplate string, args ...interface{}) string {
 	return url
 }
 
-func (r *Registry) Ping() error {
+func (r *Registry) Ping(ctx context.Context) error {
 	url := r.url("/v2/")
 	r.Logf("registry.ping url=%s", url)
-	resp, err := r.Client.Get(url)
+	resp, err := ctxhttp.Get(ctx, r.Client, url)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-
+		return chooseError(ctx, err)
 	}
-	return err
+	return nil
 }
